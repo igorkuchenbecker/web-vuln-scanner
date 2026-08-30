@@ -61,7 +61,7 @@ class SessionFactory:
 
     ``requests.Session`` is not documented as thread-safe, so the HTTP client
     keeps one session per thread and gets it from here rather than sharing a
-    single object across the worker pool.
+    single object; this keeps the client safe to use from multiple threads.
     """
 
     def __init__(self, config: ScanConfig) -> None:

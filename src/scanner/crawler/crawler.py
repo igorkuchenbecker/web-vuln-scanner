@@ -138,6 +138,5 @@ class Crawler:
         """
         signature = (form.action, form.method, form.field_names)
         return any(
-            (known.action, known.method, known.field_names) == signature
-            for known in site_map.forms
+            (known.action, known.method, known.field_names) == signature for known in site_map.forms
         )

@@ -86,9 +86,7 @@ def with_query_param(url: str, name: str, value: str) -> str:
     updated = [(key, value if key == name else existing) for key, existing in pairs]
     if name not in {key for key, _ in pairs}:
         updated.append((name, value))
-    return urlunsplit(
-        (parts.scheme, parts.netloc, parts.path, urlencode(updated), "")
-    )
+    return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(updated), ""))
 
 
 def strip_query(url: str) -> str:

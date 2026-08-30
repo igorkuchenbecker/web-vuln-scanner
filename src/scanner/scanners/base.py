@@ -12,7 +12,7 @@ surface for a project whose scanner set is small and known.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Iterable
+from collections.abc import Iterable
 
 from ..core.models import ScanResult, SiteMap
 from ..http.client import HttpClient

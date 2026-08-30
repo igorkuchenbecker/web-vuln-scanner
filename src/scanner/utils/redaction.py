@@ -8,7 +8,7 @@ where such data would otherwise be rendered.
 
 from __future__ import annotations
 
-from typing import Mapping
+from collections.abc import Mapping
 
 __all__ = ["SENSITIVE_HEADERS", "redact_headers", "redact_text"]
 

@@ -2,15 +2,15 @@
 
 A single :class:`RateLimiter` instance is shared by the crawler and every
 scanner, so the configured rate is a property of the whole run rather than of
-each component. It is thread-safe because the engine may fan out scanners
-across a small worker pool.
+each component. It is thread-safe so that a future parallel engine could share
+one limiter without changing the pacing contract.
 """
 
 from __future__ import annotations
 
 import threading
 import time
-from typing import Callable
+from collections.abc import Callable
 
 __all__ = ["RateLimiter"]
 

@@ -22,8 +22,6 @@ def test_defaults_are_conservative() -> None:
         {"timeout": 0},
         {"delay": -1},
         {"requests_per_second": 0},
-        {"concurrency": 0},
-        {"concurrency": 9},
         {"max_redirects": -1},
     ],
 )

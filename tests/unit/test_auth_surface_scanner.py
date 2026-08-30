@@ -30,9 +30,7 @@ def test_login_form_is_discovered() -> None:
 
 def test_login_path_is_discovered() -> None:
     site_map = SiteMap()
-    site_map.pages.append(
-        Page("http://x.test/signin", 200, {}, "text/html", "<html>", 0)
-    )
+    site_map.pages.append(Page("http://x.test/signin", 200, {}, "text/html", "<html>", 0))
     findings = AuthSurfaceScanner().scan(_context(site_map))
     assert any("URL pattern" in f.vulnerability for f in findings)
     assert all(f.severity is Severity.INFO for f in findings)

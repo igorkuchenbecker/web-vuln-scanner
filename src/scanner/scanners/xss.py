@@ -48,6 +48,7 @@ class ReflectedXssScanner(Scanner):
     description = "Reflected cross-site scripting via unencoded parameter reflection."
 
     def scan(self, context: ScanContext) -> list[ScanResult]:
+        """Return reflected-XSS findings across every discovered parameter."""
         findings: list[ScanResult] = []
         for endpoint in context.site_map.endpoints:
             for parameter in endpoint.params:
@@ -145,9 +146,7 @@ class ReflectedXssScanner(Scanner):
             ),
         )
 
-    def _encoded_reflection(
-        self, endpoint: Endpoint, parameter: str, marker: str
-    ) -> ScanResult:
+    def _encoded_reflection(self, endpoint: Endpoint, parameter: str, marker: str) -> ScanResult:
         return ScanResult(
             scanner=self.name,
             vulnerability="Parameter reflection (output encoded)",
@@ -166,9 +165,7 @@ class ReflectedXssScanner(Scanner):
                 "No action required for this parameter if encoding is applied "
                 "consistently across all output contexts."
             ),
-            impact=(
-                "None observed: the reflection is neutralised by output encoding."
-            ),
+            impact=("None observed: the reflection is neutralised by output encoding."),
             severity_rationale=(
                 "INFO: encoded reflection is not exploitable but is worth noting as "
                 "surface where encoding must not regress."

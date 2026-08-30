@@ -34,7 +34,7 @@ class Scope:
         extra_hosts: tuple[str, ...] = (),
         allow_subdomains: bool = False,
         path_prefix: str | None = None,
-    ) -> "Scope":
+    ) -> Scope:
         """Build a scope from the target URL.
 
         ``extra_hosts`` exists for applications legitimately split across
@@ -43,9 +43,7 @@ class Scope:
         """
         parts = urlsplit(target_url.strip())
         if parts.scheme.lower() not in {"http", "https"}:
-            raise ConfigurationError(
-                f"target must be an http(s) URL, got: {target_url!r}"
-            )
+            raise ConfigurationError(f"target must be an http(s) URL, got: {target_url!r}")
         host = (parts.hostname or "").lower()
         if not host:
             raise ConfigurationError(f"target has no host: {target_url!r}")
@@ -87,9 +85,7 @@ class Scope:
         path = parts.path or "/"
         if self.path_prefix == "/":
             return True
-        return path == self.path_prefix or path.startswith(
-            self.path_prefix.rstrip("/") + "/"
-        )
+        return path == self.path_prefix or path.startswith(self.path_prefix.rstrip("/") + "/")
 
     def _host_allowed(self, host: str) -> bool:
         if host in self.hosts:

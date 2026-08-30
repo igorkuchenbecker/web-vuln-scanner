@@ -32,8 +32,10 @@ def _e(value: object) -> str:
 
 
 def _load_template() -> Template:
-    text = resources.files("scanner.reporting.templates").joinpath("report.html").read_text(
-        encoding="utf-8"
+    text = (
+        resources.files("scanner.reporting.templates")
+        .joinpath("report.html")
+        .read_text(encoding="utf-8")
     )
     return Template(text)
 
@@ -75,11 +77,7 @@ def _executive_summary(report: ScanReport) -> str:
         )
     counts = report.severity_counts()
     highest = max((f.severity for f in report.findings), key=lambda s: s.rank)
-    parts = [
-        f"{count} {sev.label}"
-        for sev, count in counts.items()
-        if count
-    ]
+    parts = [f"{count} {sev.label}" for sev, count in counts.items() if count]
     return (
         f"{len(report.findings)} finding(s) across {len(report.scanners_run)} "
         f"scanner(s); highest severity: {highest.label.upper()}. "
@@ -91,9 +89,7 @@ def _render_counts(counts: dict[Severity, int]) -> str:
     chunks = []
     for severity, count in counts.items():
         cls = _SEVERITY_CLASS[severity]
-        chunks.append(
-            f'<span class="pill {cls}">{_e(severity.label.upper())}: {count}</span>'
-        )
+        chunks.append(f'<span class="pill {cls}">{_e(severity.label.upper())}: {count}</span>')
     return "".join(chunks)
 
 
@@ -128,4 +124,4 @@ def _render_errors(report: ScanReport) -> str:
     if not report.errors:
         return ""
     items = "".join(f"<li>{_e(msg)}</li>" for msg in report.errors[:50])
-    return f' {len(report.errors)} non-fatal error(s):<ul>{items}</ul>'
+    return f" {len(report.errors)} non-fatal error(s):<ul>{items}</ul>"

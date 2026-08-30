@@ -9,8 +9,8 @@ convention.
 from __future__ import annotations
 
 import threading
+from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
-from typing import Mapping
 from urllib.parse import urljoin
 
 import requests
@@ -140,9 +140,7 @@ class HttpClient:
             next_url = urljoin(current_url, location)
             chain.append(next_url)
             if not self._scope.is_in_scope(next_url):
-                self._log.info(
-                    "stopping redirect chain at out-of-scope location: %s", next_url
-                )
+                self._log.info("stopping redirect chain at out-of-scope location: %s", next_url)
                 return replace(response, redirect_chain=tuple(chain))
 
             current_url = next_url
@@ -161,7 +159,7 @@ class HttpClient:
         for session in sessions:
             session.close()
 
-    def __enter__(self) -> "HttpClient":
+    def __enter__(self) -> HttpClient:
         return self
 
     def __exit__(self, *exc_info: object) -> None:
@@ -186,9 +184,7 @@ class HttpClient:
         if not self._scope.is_in_scope(url):
             raise ScopeError(f"refusing out-of-scope request: {url}")
         if not self._budget.try_consume():
-            raise BudgetExceeded(
-                f"request budget exhausted after {self._budget.limit} requests"
-            )
+            raise BudgetExceeded(f"request budget exhausted after {self._budget.limit} requests")
 
         self._rate_limiter.acquire()
         self._log.debug("%s %s", method, url)

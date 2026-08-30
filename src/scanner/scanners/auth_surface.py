@@ -39,6 +39,7 @@ class AuthSurfaceScanner(Scanner):
     description = "Discovers likely login/authentication surface (no exploitation)."
 
     def scan(self, context: ScanContext) -> list[ScanResult]:
+        """Return INFO findings for likely authentication surface (no exploitation)."""
         findings: list[ScanResult] = []
         seen: set[str] = set()
 
@@ -59,9 +60,7 @@ class AuthSurfaceScanner(Scanner):
     def _looks_like_login_form(form) -> bool:
         has_password = any(f.field_type == "password" for f in form.fields)
         names = " ".join(form.field_names).lower()
-        looks_like_credentials = has_password or (
-            "user" in names and "pass" in names
-        )
+        looks_like_credentials = has_password or ("user" in names and "pass" in names)
         return looks_like_credentials
 
     def _form_finding(self, form) -> ScanResult:

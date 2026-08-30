@@ -71,6 +71,7 @@ class SqlInjectionScanner(Scanner):
     description = "Non-destructive error-based and boolean-based SQL injection checks."
 
     def scan(self, context: ScanContext) -> list[ScanResult]:
+        """Return SQL-injection findings across every discovered parameter."""
         findings: list[ScanResult] = []
         for endpoint in context.site_map.endpoints:
             for parameter in endpoint.params:
@@ -129,10 +130,7 @@ class SqlInjectionScanner(Scanner):
         false_probe = send_probe(context.client, endpoint, parameter, _FALSE_PROBE)
         if true_probe is None or false_probe is None:
             return None
-        if (
-            true_probe.response.status_code >= 500
-            or false_probe.response.status_code >= 500
-        ):
+        if true_probe.response.status_code >= 500 or false_probe.response.status_code >= 500:
             return None
 
         baseline_body = baseline.response.body

@@ -11,7 +11,14 @@ from tests.unit.fake_client import FakeHttpClient, make_response
 def _context(url: str, headers: dict[str, str]) -> ScanContext:
     site_map = SiteMap()
     site_map.pages.append(
-        Page(url=url, status_code=200, headers=headers, content_type="text/html", body="<html>", depth=0)
+        Page(
+            url=url,
+            status_code=200,
+            headers=headers,
+            content_type="text/html",
+            body="<html>",
+            depth=0,
+        )
     )
     client = FakeHttpClient(lambda u, m, d: make_response(u, "<html>", headers=headers))
     return ScanContext(site_map, client)  # type: ignore[arg-type]
@@ -47,7 +54,8 @@ def test_hsts_not_reported_on_http() -> None:
 def test_missing_csp_is_medium_not_high() -> None:
     context = _context("https://example.test/", {"Content-Type": "text/html"})
     csp = next(
-        f for f in SecurityHeadersScanner().scan(context)
+        f
+        for f in SecurityHeadersScanner().scan(context)
         if "Content-Security-Policy" in f.vulnerability
     )
     assert csp.severity is Severity.MEDIUM

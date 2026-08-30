@@ -9,10 +9,11 @@ require no change here.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from ..crawler.crawler import Crawler
 from ..http.client import HttpClient
+
 # Importing scanners.base runs scanners/__init__.py, which registers every
 # built-in scanner; build_scanners then resolves them by name.
 from ..scanners.base import ScanContext, Scanner, build_scanners
@@ -50,7 +51,7 @@ class ScanEngine:
             ", ".join(s.name for s in scanners),
         )
 
-        started = datetime.now(timezone.utc)
+        started = datetime.now(UTC)
         errors: list[str] = []
 
         with HttpClient(self._config, scope) as client:
@@ -65,7 +66,7 @@ class ScanEngine:
 
             requests_sent = client.requests_sent
 
-        finished = datetime.now(timezone.utc)
+        finished = datetime.now(UTC)
         return ScanReport(
             target=target,
             started_at=started,
@@ -79,9 +80,7 @@ class ScanEngine:
             errors=errors,
         )
 
-    def _run_scanner(
-        self, scanner: Scanner, context: ScanContext, errors: list[str]
-    ) -> list:
+    def _run_scanner(self, scanner: Scanner, context: ScanContext, errors: list[str]) -> list:
         """Run one scanner, converting its failure into a recorded error.
 
         A single scanner blowing up must not lose the findings of the others,

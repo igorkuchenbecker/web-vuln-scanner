@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from scanner.core.models import (
     Confidence,
@@ -16,7 +16,7 @@ from scanner.reporting.html import render_html_report
 
 
 def _report(findings: list[ScanResult]) -> ScanReport:
-    start = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    start = datetime(2026, 1, 1, tzinfo=UTC)
     return ScanReport(
         target=Target("http://x.test/", "x.test", "http"),
         started_at=start,

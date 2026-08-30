@@ -1,5 +1,7 @@
 # web-vuln-scanner
 
+[![CI](https://github.com/igorkuchenbecker/web-vuln-scanner/actions/workflows/ci.yml/badge.svg)](https://github.com/igorkuchenbecker/web-vuln-scanner/actions/workflows/ci.yml)
+
 A modular, **safe-by-design**, non-destructive web application vulnerability
 scanner written in Python. It crawls an authorised target, discovers request
 surface (links, GET parameters, HTML forms), runs a set of pluggable scanners
@@ -115,7 +117,6 @@ After `pip install`, a `web-vuln-scanner` console entry point is also available.
 | `--insecure` | off | Disable TLS verification (staging only; logged). |
 | `--delay` | `0.5` | Minimum delay between requests (seconds). |
 | `--requests-per-second` | – | Rate cap; combined with `--delay`, the stricter wins. |
-| `--concurrency` | `1` | Worker threads (1–8). |
 | `--user-agent` | scanner UA | Custom User-Agent. |
 | `--header NAME:VALUE` | – | Extra request header (repeatable). |
 | `--cookie NAME=VALUE` | – | Request cookie (repeatable). |
@@ -142,9 +143,16 @@ the tool can gate CI.
 ## Testing
 
 ```bash
-pip install -e ".[dev]"   # or: pip install pytest
-pytest
+pip install -e ".[dev]"
+pytest                       # run the test suite
+pytest --cov=scanner         # with coverage
+ruff check .                 # lint
+ruff format --check .        # formatting
 ```
+
+Continuous integration runs the suite on Python 3.12 and 3.13 plus `ruff`
+lint/format checks on every push and pull request (see
+`.github/workflows/ci.yml`).
 
 The suite includes unit tests for every component and an **integration test**
 that starts a bundled, deliberately vulnerable app on `127.0.0.1` (random port)

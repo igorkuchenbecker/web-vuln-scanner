@@ -59,7 +59,7 @@ class _Handler(BaseHTTPRequestHandler):
     def _home(self, _params: dict[str, list[str]]) -> None:
         self._send_html(
             "<h1>Vulnerable Test App</h1>"
-            '<ul>'
+            "<ul>"
             '<li><a href="/search?q=hello">search (reflected XSS)</a></li>'
             '<li><a href="/item?id=1">item (SQL injection)</a></li>'
             '<li><a href="/safe?q=hello">safe reflection</a></li>'
@@ -121,7 +121,8 @@ class _Handler(BaseHTTPRequestHandler):
         * ``' AND '1'='2`` returns no rows (boolean-false).
         * A bare id returns that row.
         """
-        if raw_id.count("'") % 2 == 1 and "OR" not in raw_id.upper() and "AND" not in raw_id.upper():
+        upper = raw_id.upper()
+        if raw_id.count("'") % 2 == 1 and "OR" not in upper and "AND" not in upper:
             return _SQL_ERROR
         if re.search(r"OR\s+'1'\s*=\s*'1", raw_id, re.IGNORECASE):
             return list(_USERS.values())
@@ -134,7 +135,7 @@ class _Handler(BaseHTTPRequestHandler):
 
     def _send_html(self, body: str, status: int = 200) -> None:
         # VULNERABLE by omission: no CSP, HSTS, X-Frame-Options, etc.
-        payload = f"<!DOCTYPE html><html><body>{body}</body></html>".encode("utf-8")
+        payload = f"<!DOCTYPE html><html><body>{body}</body></html>".encode()
         self.send_response(status)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(payload)))
@@ -162,7 +163,7 @@ class VulnerableAppServer:
         host, port = self._server.server_address[:2]
         return f"http://{host}:{port}"
 
-    def __enter__(self) -> "VulnerableAppServer":
+    def __enter__(self) -> VulnerableAppServer:
         self._thread.start()
         return self
 

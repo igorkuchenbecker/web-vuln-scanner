@@ -8,10 +8,10 @@ solving a problem this project actually has.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Mapping
 
 __all__ = [
     "Severity",
@@ -49,7 +49,7 @@ class Severity(Enum):
         return self.label
 
     @classmethod
-    def from_label(cls, label: str) -> "Severity":
+    def from_label(cls, label: str) -> Severity:
         """Return the severity whose label matches ``label`` (case-insensitive)."""
         normalised = label.strip().lower()
         for member in cls:
@@ -197,7 +197,7 @@ class SiteMap:
 
 
 def _utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 @dataclass(frozen=True, slots=True)
@@ -248,9 +248,7 @@ class ScanReport:
         counts = {severity: 0 for severity in Severity}
         for finding in self.findings:
             counts[finding.severity] += 1
-        return dict(
-            sorted(counts.items(), key=lambda item: item[0].rank, reverse=True)
-        )
+        return dict(sorted(counts.items(), key=lambda item: item[0].rank, reverse=True))
 
     def sorted_findings(self) -> list[ScanResult]:
         """Return findings ordered by severity then confidence."""

@@ -8,8 +8,8 @@ and small rather than fast and noisy.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
-from typing import Mapping
 
 from .exceptions import ConfigurationError
 
@@ -36,7 +36,6 @@ class ScanConfig:
     # Politeness
     delay: float = 0.5
     requests_per_second: float | None = None
-    concurrency: int = 1
 
     # Request shaping
     user_agent: str = DEFAULT_USER_AGENT
@@ -57,7 +56,6 @@ class ScanConfig:
         self._require_positive("max_requests", self.max_requests)
         self._require_positive("timeout", self.timeout)
         self._require_positive("max_response_bytes", self.max_response_bytes)
-        self._require_positive("concurrency", self.concurrency)
 
         if self.max_redirects < 0:
             raise ConfigurationError("max_redirects must be >= 0")
@@ -65,10 +63,7 @@ class ScanConfig:
             raise ConfigurationError("delay must be >= 0")
         if self.requests_per_second is not None and self.requests_per_second <= 0:
             raise ConfigurationError("requests_per_second must be > 0")
-        if self.concurrency > 8:
-            raise ConfigurationError(
-                "concurrency is capped at 8 to keep load on the target bounded"
-            )
+
     @staticmethod
     def _require_positive(name: str, value: float, *, allow_zero: bool = False) -> None:
         if allow_zero and value < 0:
@@ -88,6 +83,6 @@ class ScanConfig:
             interval = max(interval, 1.0 / self.requests_per_second)
         return interval
 
-    def with_overrides(self, **overrides: object) -> "ScanConfig":
+    def with_overrides(self, **overrides: object) -> ScanConfig:
         """Return a copy of this config with ``overrides`` applied."""
         return replace(self, **overrides)  # type: ignore[arg-type]

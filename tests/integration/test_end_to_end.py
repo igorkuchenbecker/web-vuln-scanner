@@ -35,7 +35,8 @@ def test_reflected_xss_detected(report) -> None:
 
 def test_safe_endpoint_not_flagged_as_vulnerable(report) -> None:
     vulnerable_xss = [
-        f for f in report.findings
+        f
+        for f in report.findings
         if f.scanner == "xss" and "/safe" in f.url and f.severity.rank > 0
     ]
     assert vulnerable_xss == []

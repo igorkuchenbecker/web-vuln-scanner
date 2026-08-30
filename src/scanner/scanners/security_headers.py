@@ -24,6 +24,7 @@ class SecurityHeadersScanner(Scanner):
     description = "Missing or weak security response headers and cookie flags."
 
     def scan(self, context: ScanContext) -> list[ScanResult]:
+        """Return header/cookie findings for the target's representative page."""
         page = self._representative_page(context.site_map)
         if page is None:
             return []
@@ -156,8 +157,7 @@ class SecurityHeadersScanner(Scanner):
                 "directive is set.",
                 remediation="Send 'X-Frame-Options: DENY' or a CSP "
                 "'frame-ancestors \\'none\\'' directive.",
-                impact="The page can be embedded in a hostile frame and used for "
-                "clickjacking.",
+                impact="The page can be embedded in a hostile frame and used for " "clickjacking.",
                 rationale="LOW: exploitation needs user interaction and only affects "
                 "framing-sensitive pages.",
                 evidence="No X-Frame-Options header and no frame-ancestors directive.",
@@ -228,8 +228,7 @@ class SecurityHeadersScanner(Scanner):
                     response,
                     vulnerability="Cookie set without Secure flag",
                     severity=Severity.LOW,
-                    description="A cookie on an HTTPS response omits the Secure "
-                    "attribute.",
+                    description="A cookie on an HTTPS response omits the Secure " "attribute.",
                     remediation="Add the Secure attribute so the cookie is never sent "
                     "over plaintext.",
                     impact="The cookie may be transmitted over an unencrypted "

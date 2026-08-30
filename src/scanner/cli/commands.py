@@ -43,9 +43,7 @@ def build_parser() -> argparse.ArgumentParser:
     limits = parser.add_argument_group("crawl limits")
     limits.add_argument("--max-depth", type=int, default=3, help="Maximum crawl depth.")
     limits.add_argument("--max-pages", type=int, default=50, help="Maximum pages to crawl.")
-    limits.add_argument(
-        "--max-requests", type=int, default=500, help="Hard cap on total requests."
-    )
+    limits.add_argument("--max-requests", type=int, default=500, help="Hard cap on total requests.")
 
     transport = parser.add_argument_group("transport")
     transport.add_argument("--timeout", type=float, default=10.0, help="Per-request timeout (s).")
@@ -65,15 +63,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     pace = parser.add_argument_group("pacing")
-    pace.add_argument("--delay", type=float, default=0.5, help="Minimum delay between requests (s).")
+    pace.add_argument(
+        "--delay", type=float, default=0.5, help="Minimum delay between requests (s)."
+    )
     pace.add_argument(
         "--requests-per-second",
         type=float,
         default=None,
         help="Cap request rate; combined with --delay, the stricter wins.",
-    )
-    pace.add_argument(
-        "--concurrency", type=int, default=1, help="Worker threads (1-8, default 1)."
     )
 
     shaping = parser.add_argument_group("request shaping")
@@ -166,7 +163,6 @@ def _config_from_args(args: argparse.Namespace) -> ScanConfig:
         verify_tls=not args.insecure,
         delay=args.delay,
         requests_per_second=args.requests_per_second,
-        concurrency=args.concurrency,
         user_agent=args.user_agent,
         headers=_parse_headers(args.header),
         cookies=_parse_cookies(args.cookie),
