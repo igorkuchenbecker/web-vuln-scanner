@@ -16,9 +16,12 @@ env/
 .coverage
 htmlcov/
 
-# Scanner output
-*.report.html
-report.html
+# Scanner output. Anchored to the repository root: an unanchored `report.html`
+# rule also matches the packaged template at
+# src/scanner/reporting/templates/report.html and silently drops it from the
+# distribution.
+/report.html
+/*.report.html
 
 # Editors / OS
 .idea/
