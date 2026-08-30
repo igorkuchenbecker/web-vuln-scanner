@@ -5,82 +5,230 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Vulnerability Scan Report — $target_host</title>
 <style>
-  :root {
-    --bg: #f6f7f9; --card: #ffffff; --ink: #1b1f24; --muted: #5b6673;
-    --border: #e2e6ea; --critical: #7b1020; --high: #c62828; --medium: #ef8f00;
-    --low: #0277bd; --info: #607d8b;
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--ink);
-    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-  .wrap { max-width: 960px; margin: 0 auto; padding: 32px 20px 64px; }
-  h1 { font-size: 24px; margin: 0 0 4px; }
-  h2 { font-size: 18px; margin: 32px 0 12px; }
-  .sub { color: var(--muted); margin: 0 0 24px; }
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px;
-    padding: 18px 20px; margin-bottom: 16px; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
-  .metric { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
-  .metric .n { font-size: 22px; font-weight: 700; }
-  .metric .l { color: var(--muted); font-size: 13px; }
-  .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px;
-    font-weight: 700; color: #fff; letter-spacing: .3px; }
-  .s-critical { background: var(--critical); } .s-high { background: var(--high); }
-  .s-medium { background: var(--medium); } .s-low { background: var(--low); }
-  .s-info { background: var(--info); }
-  .counts { display: flex; flex-wrap: wrap; gap: 8px; }
-  .finding { border-left: 4px solid var(--border); }
-  .finding.s-critical { border-left-color: var(--critical); }
-  .finding.s-high { border-left-color: var(--high); }
-  .finding.s-medium { border-left-color: var(--medium); }
-  .finding.s-low { border-left-color: var(--low); }
-  .finding.s-info { border-left-color: var(--info); }
-  .finding h3 { margin: 0 0 8px; font-size: 16px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .kv { display: grid; grid-template-columns: 130px 1fr; gap: 4px 12px; margin: 10px 0; }
-  .kv dt { color: var(--muted); font-size: 13px; }
-  .kv dd { margin: 0; word-break: break-word; }
-  code, .mono { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 13px; }
-  .evidence { background: #f0f2f4; border: 1px solid var(--border); border-radius: 6px;
-    padding: 8px 10px; white-space: pre-wrap; word-break: break-word; font-size: 13px; }
-  .muted { color: var(--muted); }
-  footer { margin-top: 40px; color: var(--muted); font-size: 13px; }
-  .none { color: #2e7d32; font-weight: 600; }
+/*
+ * Self-contained by design: the report is meant to be opened straight from
+ * disk, attached to a ticket or mailed on, so there is no external stylesheet,
+ * no web font and no script. Everything below is system fonts and CSS.
+ *
+ * Every severity colour was checked for WCAG contrast against both surfaces
+ * (all pass AA for small text) and for colour-vision separation. Severity is
+ * never carried by colour alone: each badge is labelled in writing.
+ */
+:root {
+  --bg: #05070a;
+  --panel: #0a0f16;
+  --panel-2: #0d141d;
+  --line: #17232f;
+  --line-hot: #1d3442;
+  --ink: #d7e7ee;
+  --muted: #7d95a1;
+  --accent: #00f5c8;
+  --critical: #ff2d6f;
+  --high: #ff8a3d;
+  --medium: #ffd166;
+  --low: #4dd8ff;
+  --info: #8aa4b8;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, "JetBrains Mono", "Fira Code",
+          Menlo, Consolas, "Liberation Mono", monospace;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 13px/1.6 var(--mono);
+  letter-spacing: .2px;
+  -webkit-font-smoothing: antialiased;
+}
+/* Grade e scanlines: decorativas, inertes ao ponteiro. */
+.fx { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+.fx-grid {
+  background-image:
+    linear-gradient(to right, rgba(0, 245, 200, .04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 245, 200, .04) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: radial-gradient(ellipse 120% 80% at 50% 0%, #000 30%, transparent 100%);
+}
+.fx-scan {
+  background: repeating-linear-gradient(to bottom, rgba(0,0,0,.28) 0 1px, transparent 1px 3px);
+  opacity: .45;
+}
+.wrap { position: relative; z-index: 1; max-width: 1080px; margin: 0 auto; padding: 34px 22px 64px; }
+
+header { border-bottom: 1px solid var(--line); padding-bottom: 20px; margin-bottom: 24px; }
+.eyebrow { color: var(--accent); font-size: 10.5px; letter-spacing: 2.4px; text-transform: uppercase; margin: 0 0 8px; }
+h1 {
+  margin: 0 0 12px;
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  text-shadow: 0 0 22px rgba(0, 245, 200, .25);
+}
+.meta { display: flex; flex-wrap: wrap; gap: 8px 26px; color: var(--muted); font-size: 11.5px; margin: 0; }
+.meta b { color: var(--ink); font-weight: 600; }
+
+h2 {
+  margin: 34px 0 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--ink);
+  display: flex; align-items: center; gap: 9px;
+}
+h2::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 10px rgba(0, 245, 200, .8);
+}
+
+.panel { position: relative; background: var(--panel); border: 1px solid var(--line); padding: 18px 20px; }
+.panel::before {
+  content: ""; position: absolute; top: -1px; left: -1px; width: 24px; height: 24px;
+  border-top: 1px solid var(--accent); border-left: 1px solid var(--accent); opacity: .5;
+}
+.summary-text { margin: 0 0 16px; color: var(--ink); }
+
+/* Distribuição por severidade: barra rotulada, nunca só cor. */
+/* gap de 2px: segmentos adjacentes precisam de um respiro na cor da
+   superfície, senão duas severidades vizinhas leem como um bloco só. */
+.dist { display: flex; gap: 2px; height: 8px; border: 1px solid var(--line);
+        background: #060b11; overflow: hidden; padding: 1px; }
+.dist span { display: block; height: 100%; }
+.dist .d-critical { background: var(--critical); }
+.dist .d-high { background: var(--high); }
+.dist .d-medium { background: var(--medium); }
+.dist .d-low { background: var(--low); }
+.dist .d-info { background: var(--info); }
+.counts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.pill {
+  padding: 3px 10px; font-size: 10.5px; font-weight: 700; letter-spacing: 1.2px;
+  text-transform: uppercase; border: 1px solid currentColor; border-radius: 2px;
+  background: rgba(255, 255, 255, .03);
+}
+.p-critical { color: var(--critical); }
+.p-high { color: var(--high); }
+.p-medium { color: var(--medium); }
+.p-low { color: var(--low); }
+.p-info { color: var(--info); }
+
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+.metric {
+  position: relative; padding: 14px 16px;
+  background: linear-gradient(160deg, var(--panel-2), var(--panel));
+  border: 1px solid var(--line); color: var(--accent);
+}
+.metric::after {
+  content: ""; position: absolute; bottom: -1px; right: -1px; width: 9px; height: 9px;
+  border-right: 1px solid currentColor; border-bottom: 1px solid currentColor; opacity: .7;
+}
+.metric .n {
+  display: block; font-size: 25px; font-weight: 700; line-height: 1.1;
+  text-shadow: 0 0 14px currentColor; font-variant-numeric: tabular-nums;
+}
+.metric .l {
+  display: block; margin-top: 3px; font-size: 10px; letter-spacing: 1.4px;
+  text-transform: uppercase; color: var(--muted);
+}
+
+.finding { position: relative; background: var(--panel); border: 1px solid var(--line); border-left-width: 3px; padding: 16px 20px; margin-bottom: 14px; }
+.finding.s-critical { border-left-color: var(--critical); }
+.finding.s-high { border-left-color: var(--high); }
+.finding.s-medium { border-left-color: var(--medium); }
+.finding.s-low { border-left-color: var(--low); }
+.finding.s-info { border-left-color: var(--info); }
+.finding h3 { margin: 0 0 12px; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.finding .scanner { color: var(--muted); font-size: 11px; letter-spacing: 1px; }
+.badge {
+  padding: 2px 9px; font-size: 10px; font-weight: 700; letter-spacing: 1.2px;
+  text-transform: uppercase; border: 1px solid currentColor; border-radius: 2px;
+  background: rgba(255, 255, 255, .03);
+}
+.b-critical { color: var(--critical); box-shadow: inset 0 0 12px rgba(255,45,111,.22); }
+.b-high { color: var(--high); box-shadow: inset 0 0 12px rgba(255,138,61,.2); }
+.b-medium { color: var(--medium); }
+.b-low { color: var(--low); }
+.b-info { color: var(--info); }
+
+.kv { display: grid; grid-template-columns: 140px 1fr; gap: 6px 16px; margin: 0 0 14px; }
+.kv dt { color: var(--muted); font-size: 10.5px; letter-spacing: 1.1px; text-transform: uppercase; padding-top: 2px; }
+.kv dd { margin: 0; word-break: break-word; }
+.kv dd.url { color: var(--accent); }
+
+.evidence {
+  background: #060b11; border: 1px solid var(--line-hot); border-left: 2px solid var(--accent);
+  padding: 10px 13px; white-space: pre-wrap; word-break: break-word;
+  font-size: 12px; color: var(--ink);
+}
+.evidence::before {
+  content: "evidence"; display: block; color: var(--accent);
+  font-size: 9.5px; letter-spacing: 1.6px; text-transform: uppercase; margin-bottom: 6px;
+}
+.none { color: var(--accent); font-weight: 700; letter-spacing: 1.2px; }
+.muted { color: var(--muted); }
+.muted p { margin: 0 0 10px; }
+.muted p:last-child { margin-bottom: 0; }
+footer { margin-top: 34px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; }
+footer .mark { color: var(--accent); margin-right: 6px; }
+footer ul { margin: 8px 0 0; padding-left: 18px; }
+
+@media print {
+  body { background: #fff; color: #111; }
+  .fx { display: none; }
+  .panel, .finding, .metric { background: #fff; border-color: #ccc; box-shadow: none; }
+  .metric .n, h1 { text-shadow: none; }
+  .evidence { background: #f4f6f8; color: #111; }
+}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>Web Application Vulnerability Scan</h1>
-  <p class="sub">Target: <span class="mono">$target_url</span> · Generated $generated_at · Duration ${duration}s</p>
+<div class="fx fx-grid" aria-hidden="true"></div>
+<div class="fx fx-scan" aria-hidden="true"></div>
 
-  <div class="card">
-    <strong>Executive summary.</strong>
-    <p style="margin:8px 0 12px">$executive_summary</p>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">// authorized testing report</p>
+    <h1>Web Application Vulnerability Scan</h1>
+    <p class="meta">
+      <span>target <b>$target_url</b></span>
+      <span>generated <b>$generated_at</b></span>
+      <span>duration <b>${duration}s</b></span>
+      <span>scanners <b>$scanners_run</b></span>
+    </p>
+  </header>
+
+  <h2>Executive summary</h2>
+  <div class="panel">
+    <p class="summary-text">$executive_summary</p>
+    <div class="dist" role="img" aria-label="Findings by severity">$severity_bar</div>
     <div class="counts">$severity_counts</div>
   </div>
 
-  <h2>Metrics</h2>
-  <div class="grid">
-    <div class="metric"><div class="n">$pages</div><div class="l">Pages discovered</div></div>
-    <div class="metric"><div class="n">$endpoints</div><div class="l">Endpoints</div></div>
-    <div class="metric"><div class="n">$forms</div><div class="l">Forms</div></div>
-    <div class="metric"><div class="n">$requests</div><div class="l">Requests sent</div></div>
-    <div class="metric"><div class="n">$findings_count</div><div class="l">Findings</div></div>
+  <h2>Scan metrics</h2>
+  <div class="metrics">
+    <div class="metric"><span class="n">$pages</span><span class="l">pages crawled</span></div>
+    <div class="metric"><span class="n">$endpoints</span><span class="l">endpoints</span></div>
+    <div class="metric"><span class="n">$forms</span><span class="l">forms</span></div>
+    <div class="metric"><span class="n">$requests</span><span class="l">requests sent</span></div>
+    <div class="metric"><span class="n">$findings_count</span><span class="l">findings</span></div>
   </div>
 
   <h2>Findings</h2>
   $findings_html
 
   <h2>Scanner limitations</h2>
-  <div class="card muted">
-    <p>This tool performs <strong>non-destructive, evidence-based</strong> checks only. It does not
-    execute JavaScript, so reflected-XSS findings indicate <em>potential</em> execution that a human
-    must confirm in a browser. SQL-injection findings are heuristic (error- and boolean-based) and
-    never extract data. Absence of a finding is not proof of absence of a vulnerability.</p>
+  <div class="panel muted">
+    <p>This tool performs <strong>non-destructive, evidence-based</strong> checks only. It does
+    not execute JavaScript, so reflected-XSS findings indicate <em>potential</em> execution that
+    a human must confirm in a browser. SQL-injection findings are heuristic (error- and
+    boolean-based) and never extract data.</p>
+    <p>Absence of a finding is not proof of absence of a vulnerability.</p>
   </div>
 
   <footer>
-    Generated by web-vuln-scanner. Use only against systems you are explicitly authorised to test.
-    Scanners run: $scanners_run.$errors_html
+    <span class="mark">//</span>Generated by web-vuln-scanner. Use only against systems you are
+    explicitly authorised to test.$errors_html
   </footer>
 </div>
 </body>

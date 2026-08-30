@@ -17,12 +17,14 @@ from ..core.models import ScanReport, ScanResult, Severity
 
 __all__ = ["render_html_report", "write_html_report"]
 
-_SEVERITY_CLASS = {
-    Severity.CRITICAL: "s-critical",
-    Severity.HIGH: "s-high",
-    Severity.MEDIUM: "s-medium",
-    Severity.LOW: "s-low",
-    Severity.INFO: "s-info",
+#: Suffix shared by the CSS classes of a severity: ``s-`` frames a finding,
+#: ``b-`` paints its badge, ``p-`` a summary pill and ``d-`` a bar segment.
+_SEVERITY_SUFFIX = {
+    Severity.CRITICAL: "critical",
+    Severity.HIGH: "high",
+    Severity.MEDIUM: "medium",
+    Severity.LOW: "low",
+    Severity.INFO: "info",
 }
 
 
@@ -52,6 +54,7 @@ def render_html_report(report: ScanReport) -> str:
         duration=f"{report.duration_seconds:.2f}",
         executive_summary=_e(_executive_summary(report)),
         severity_counts=_render_counts(counts),
+        severity_bar=_render_severity_bar(counts),
         pages=report.pages_discovered,
         endpoints=report.endpoints_discovered,
         forms=report.forms_discovered,
@@ -86,38 +89,61 @@ def _executive_summary(report: ScanReport) -> str:
 
 
 def _render_counts(counts: dict[Severity, int]) -> str:
-    chunks = []
-    for severity, count in counts.items():
-        cls = _SEVERITY_CLASS[severity]
-        chunks.append(f'<span class="pill {cls}">{_e(severity.label.upper())}: {count}</span>')
-    return "".join(chunks)
+    """Render one labelled pill per severity.
+
+    Every pill carries its written label, so the breakdown reads correctly
+    without relying on the colour at all.
+    """
+    return "".join(
+        f'<span class="pill p-{_SEVERITY_SUFFIX[severity]}">'
+        f"{_e(severity.label.upper())}: {count}</span>"
+        for severity, count in counts.items()
+    )
+
+
+def _render_severity_bar(counts: dict[Severity, int]) -> str:
+    """Render the severity distribution as one proportional bar.
+
+    Returns an empty bar when there is nothing to show, rather than dividing by
+    zero or drawing a misleading full-width segment.
+    """
+    total = sum(counts.values())
+    if total == 0:
+        return ""
+    return "".join(
+        f'<span class="d-{_SEVERITY_SUFFIX[severity]}" '
+        f'style="width:{count / total * 100:.2f}%" '
+        f'title="{_e(severity.label)}: {count}"></span>'
+        for severity, count in counts.items()
+        if count
+    )
 
 
 def _render_findings(report: ScanReport) -> str:
     findings = report.sorted_findings()
     if not findings:
-        return '<div class="card"><span class="none">No findings.</span></div>'
+        return '<div class="panel"><span class="none">No findings.</span></div>'
     return "\n".join(_render_finding(f) for f in findings)
 
 
 def _render_finding(finding: ScanResult) -> str:
-    cls = _SEVERITY_CLASS[finding.severity]
-    return f"""<div class="card finding {cls}">
-  <h3><span class="pill {cls}">{_e(finding.severity.label.upper())}</span>
+    suffix = _SEVERITY_SUFFIX[finding.severity]
+    return f"""<article class="finding s-{suffix}">
+  <h3><span class="badge b-{suffix}">{_e(finding.severity.label.upper())}</span>
       {_e(finding.vulnerability)}
-      <span class="muted mono">[{_e(finding.scanner)}]</span></h3>
+      <span class="scanner">[{_e(finding.scanner)}]</span></h3>
   <dl class="kv">
     <dt>Confidence</dt><dd>{_e(finding.confidence.label)}</dd>
-    <dt>URL</dt><dd class="mono">{_e(finding.url)}</dd>
+    <dt>URL</dt><dd class="url">{_e(finding.url)}</dd>
     <dt>Method</dt><dd>{_e(finding.method)}</dd>
-    <dt>Parameter</dt><dd class="mono">{_e(finding.parameter or "-")}</dd>
+    <dt>Parameter</dt><dd>{_e(finding.parameter or "-")}</dd>
     <dt>Description</dt><dd>{_e(finding.description)}</dd>
     <dt>Impact</dt><dd>{_e(finding.impact)}</dd>
     <dt>Severity rationale</dt><dd>{_e(finding.severity_rationale)}</dd>
     <dt>Remediation</dt><dd>{_e(finding.remediation)}</dd>
   </dl>
   <div class="evidence">{_e(finding.evidence)}</div>
-</div>"""
+</article>"""
 
 
 def _render_errors(report: ScanReport) -> str:
