@@ -1,0 +1,40 @@
+# Example invocation reference for web-vuln-scanner.
+#
+# The scanner is configured entirely via CLI flags (see `python -m scanner --help`).
+# This file documents a conservative, authorised-testing profile you can mirror
+# on the command line.
+#
+# Equivalent command:
+#
+#   python -m scanner \
+#       --target http://127.0.0.1:8000 \
+#       --max-depth 3 \
+#       --max-pages 50 \
+#       --max-requests 500 \
+#       --delay 0.5 \
+#       --requests-per-second 2 \
+#       --timeout 10 \
+#       --scanner headers --scanner xss --scanner sqli --scanner auth-surface \
+#       --output report.html
+
+[target]
+url = "http://127.0.0.1:8000"
+
+[limits]
+max_depth = 3
+max_pages = 50
+max_requests = 500
+
+[pacing]
+delay = 0.5
+requests_per_second = 2
+
+[transport]
+timeout = 10
+max_redirects = 5
+
+[scanners]
+enabled = ["headers", "xss", "sqli", "auth-surface"]
+
+[output]
+html = "report.html"

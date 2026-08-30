@@ -1,0 +1,7 @@
+# Runtime dependencies for web-vuln-scanner.
+requests>=2.31,<3
+beautifulsoup4>=4.12,<5
+rich>=13,<16
+
+# Development / testing (install with: pip install -r requirements.txt)
+pytest>=8,<10
