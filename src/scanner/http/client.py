@@ -11,16 +11,24 @@ from __future__ import annotations
 import threading
 from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
+from datetime import UTC, datetime
 from urllib.parse import urljoin
 
 import requests
 
 from ..core.config import ScanConfig
-from ..core.exceptions import BudgetExceeded, RequestFailed, ResponseTooLarge, ScopeError
-from ..core.models import HttpMethod
+from ..core.events import ScanEvents
+from ..core.exceptions import (
+    BudgetExceeded,
+    RequestFailed,
+    ResponseTooLarge,
+    ScanCancelled,
+    ScopeError,
+)
+from ..core.models import HttpExchange, HttpMethod
 from ..core.scope import Scope
 from ..utils.logging import get_logger
-from ..utils.redaction import redact_headers
+from ..utils.redaction import redact_headers, redact_text
 from .rate_limiter import RateLimiter
 from .session import RequestBudget, SessionFactory
 
@@ -74,15 +82,19 @@ class HttpClient:
         rate_limiter: RateLimiter | None = None,
         budget: RequestBudget | None = None,
         session_factory: SessionFactory | None = None,
+        events: ScanEvents | None = None,
     ) -> None:
         self._config = config
         self._scope = scope
         self._rate_limiter = rate_limiter or RateLimiter(config.min_interval)
         self._budget = budget or RequestBudget(config.max_requests)
         self._session_factory = session_factory or SessionFactory(config)
+        self._events = events or ScanEvents()
         self._local = threading.local()
         self._sessions: list[requests.Session] = []
         self._sessions_lock = threading.Lock()
+        self._seq = 0
+        self._seq_lock = threading.Lock()
         self._log = get_logger("http")
         self._secrets = tuple(config.cookies.values()) + tuple(
             value
@@ -181,12 +193,20 @@ class HttpClient:
         data: Mapping[str, str] | None,
     ) -> HttpResponse:
         """Perform a single hop with every safety control applied."""
+        self._check_cancelled()
         if not self._scope.is_in_scope(url):
             raise ScopeError(f"refusing out-of-scope request: {url}")
+
+        # The pacing wait happens before the budget is charged and is followed
+        # by a second cancellation check. With a slow ``--delay`` the wait is
+        # where a run spends most of its time, so checking only on the way in
+        # would leave "stop" unresponsive for as long as the interval.
+        self._rate_limiter.acquire()
+        self._check_cancelled()
+
         if not self._budget.try_consume():
             raise BudgetExceeded(f"request budget exhausted after {self._budget.limit} requests")
 
-        self._rate_limiter.acquire()
         self._log.debug("%s %s", method, url)
 
         try:
@@ -203,7 +223,7 @@ class HttpClient:
             raise RequestFailed(f"{method} {url} failed: {exc.__class__.__name__}") from exc
 
         try:
-            body, truncated = self._read_body(raw)
+            body, truncated, body_bytes = self._read_body(raw)
         finally:
             raw.close()
 
@@ -215,7 +235,7 @@ class HttpClient:
             raw.status_code,
             redact_headers(headers).get("Content-Type", ""),
         )
-        return HttpResponse(
+        response = HttpResponse(
             url=raw.url,
             status_code=raw.status_code,
             headers=headers,
@@ -225,9 +245,74 @@ class HttpClient:
             request_method=method,
             request_body=dict(data or {}),
         )
+        self._record(url, method, data, raw, response, body_bytes)
+        return response
 
-    def _read_body(self, raw: requests.Response) -> tuple[str, bool]:
-        """Read at most ``max_response_bytes`` and decode textual content."""
+    def _check_cancelled(self) -> None:
+        """Abort the run if the operator asked it to stop."""
+        if self._events.cancelled():
+            raise ScanCancelled("scan cancelled by the operator")
+
+    def _record(
+        self,
+        url: str,
+        method: HttpMethod,
+        data: Mapping[str, str] | None,
+        raw: requests.Response,
+        response: HttpResponse,
+        body_bytes: int,
+    ) -> None:
+        """Hand a redacted record of the exchange to the observer, if any.
+
+        Skipped entirely when nobody is listening: building the record copies
+        two header maps and, when the operator supplied secrets, the whole
+        response body. That is wasted work on a CLI run.
+        """
+        if self._events.on_exchange is None:
+            return
+
+        with self._seq_lock:
+            self._seq += 1
+            seq = self._seq
+
+        request_headers = dict(raw.request.headers) if raw.request is not None else {}
+        self._events.emit_exchange(
+            HttpExchange(
+                seq=seq,
+                timestamp=datetime.now(UTC),
+                method=method,
+                url=url,
+                status_code=response.status_code,
+                reason=raw.reason or "",
+                request_headers=redact_headers(request_headers),
+                request_body=self._redact_mapping(data or {}),
+                response_headers=redact_headers(response.headers),
+                response_body=self._redact(response.body),
+                content_type=response.content_type,
+                body_bytes=body_bytes,
+                elapsed_seconds=response.elapsed_seconds,
+                truncated=response.truncated,
+            )
+        )
+
+    def _redact(self, text: str) -> str:
+        """Strip operator secrets from ``text``, skipping the copy when there are none."""
+        if not self._secrets:
+            return text
+        return redact_text(text, self._secrets)
+
+    def _redact_mapping(self, mapping: Mapping[str, str]) -> dict[str, str]:
+        return {name: self._redact(value) for name, value in mapping.items()}
+
+    def _read_body(self, raw: requests.Response) -> tuple[str, bool, int]:
+        """Read at most ``max_response_bytes`` and decode textual content.
+
+        Returns the decoded body, whether it was truncated, and how many body
+        bytes were actually read. That last figure is *what the scanner
+        downloaded*, not what the server offered: a non-textual response is
+        never read at all and reports zero, while its declared length remains
+        visible in the response headers.
+        """
         declared = raw.headers.get("Content-Length")
         if declared and declared.isdigit():
             if int(declared) > self._config.max_response_bytes:
@@ -238,7 +323,7 @@ class HttpClient:
 
         content_type = raw.headers.get("Content-Type", "").lower()
         if content_type and not any(token in content_type for token in _TEXTUAL_TYPES):
-            return "", False
+            return "", False, 0
 
         limit = self._config.max_response_bytes
         chunks: list[bytes] = []
@@ -260,4 +345,4 @@ class HttpClient:
 
         payload = b"".join(chunks)[:limit]
         encoding = raw.encoding or "utf-8"
-        return payload.decode(encoding, errors="replace"), truncated
+        return payload.decode(encoding, errors="replace"), truncated, len(payload)

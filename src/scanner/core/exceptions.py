@@ -38,3 +38,14 @@ class BudgetExceeded(ScannerError):
     This is a hard stop: it aborts the current phase instead of being
     retried, because continuing would mean sending unauthorised load.
     """
+
+
+class ScanCancelled(ScannerError):
+    """Raised when the operator asked for the run to stop.
+
+    Cancellation is checked at the HTTP chokepoint, so a cancelled run stops
+    at the next request boundary rather than mid-flight: a request already on
+    the wire is allowed to finish and be accounted for. Unlike every other
+    :class:`ScannerError`, this one is never swallowed per-scanner — the whole
+    run is meant to end, not just the check that happened to notice.
+    """

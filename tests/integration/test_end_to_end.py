@@ -67,3 +67,21 @@ def test_html_report_renders(report) -> None:
 
 def test_request_budget_respected(report) -> None:
     assert report.requests_sent <= ScanConfig().max_requests
+
+
+def test_finding_prose_carries_no_stray_escapes(report) -> None:
+    """Remediation text is meant to be copied, so it must read as written.
+
+    Over-escaping a quote inside a Python string literal is invisible in the
+    source and shows up as a backslash in the terminal, the HTML report and
+    every ticket the text is pasted into. Two remediations shipped that way:
+    ``'default-src \\'self\\''`` instead of the header a reader can paste.
+    """
+    for finding in report.findings:
+        for field, text in (
+            ("description", finding.description),
+            ("remediation", finding.remediation),
+            ("impact", finding.impact),
+            ("severity_rationale", finding.severity_rationale),
+        ):
+            assert "\\" not in text, f"{finding.vulnerability}: {field} contains {text!r}"

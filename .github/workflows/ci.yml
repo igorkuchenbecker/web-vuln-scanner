@@ -39,6 +39,42 @@ jobs:
       - name: Run test suite
         run: pytest --cov=scanner --cov-report=term-missing
 
+  package:
+    name: Wheel install
+    runs-on: ubuntu-latest
+    # Two shipped-file bugs have already reached this repository: a template
+    # excluded by .gitignore, and a template directory that was not a package
+    # and so was never put in the wheel. Both passed every test, because every
+    # test ran against the working tree where the file was present on disk.
+    # This job is the check that reproduces them: build, install into a clean
+    # environment, and run the suite with the source tree off sys.path.
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Build a wheel
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build --wheel
+
+      - name: Install the wheel into a clean environment
+        run: |
+          python -m venv /tmp/wheelenv
+          /tmp/wheelenv/bin/pip install --upgrade pip
+          /tmp/wheelenv/bin/pip install "$(echo dist/*.whl)[tui]" pytest
+
+      - name: Run the suite against the installed package
+        # -o pythonpath= drops the repo's src/ from sys.path, so `scanner`
+        # can only resolve from site-packages. Without it the wheel is built,
+        # installed and then never actually imported.
+        run: /tmp/wheelenv/bin/python -m pytest -o pythonpath= -q
+
   lint:
     name: Lint & format (ruff)
     runs-on: ubuntu-latest

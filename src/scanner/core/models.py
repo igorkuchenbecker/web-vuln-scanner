@@ -23,6 +23,7 @@ __all__ = [
     "Endpoint",
     "Page",
     "SiteMap",
+    "HttpExchange",
     "ScanResult",
     "ScanReport",
 ]
@@ -198,6 +199,45 @@ class SiteMap:
 
 def _utc_now() -> datetime:
     return datetime.now(UTC)
+
+
+@dataclass(frozen=True, slots=True)
+class HttpExchange:
+    """One request/response pair, recorded for an operator to inspect.
+
+    This is an *observation* model, not a transport one: it exists so a user
+    interface can show the traffic a scan generated, in the way a proxy's
+    history pane does. It is deliberately separate from
+    :class:`~scanner.http.client.HttpResponse`, which the scanners consume —
+    the two answer different questions and have different safety rules.
+
+    Every string here is already redacted when the exchange is built, rather
+    than at the point it is displayed. A history pane is precisely where an
+    operator's session cookie would leak into a screen share, and redacting at
+    construction means no consumer can render a secret even by mistake.
+    """
+
+    seq: int
+    timestamp: datetime
+    method: HttpMethod
+    url: str
+    status_code: int
+    reason: str
+    request_headers: Mapping[str, str]
+    request_body: Mapping[str, str]
+    response_headers: Mapping[str, str]
+    response_body: str
+    content_type: str
+    body_bytes: int
+    elapsed_seconds: float
+    truncated: bool = False
+
+    @property
+    def status_class(self) -> str:
+        """The response's status family (``2xx``, ``4xx``...), or ``???``."""
+        if not 100 <= self.status_code <= 599:
+            return "???"
+        return f"{self.status_code // 100}xx"
 
 
 @dataclass(frozen=True, slots=True)

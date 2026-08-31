@@ -22,6 +22,7 @@ htmlcov/
 # distribution.
 /report.html
 /*.report.html
+/scan-*.html
 
 # Editors / OS
 .idea/

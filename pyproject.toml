@@ -26,10 +26,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8,<10", "pytest-cov>=5", "ruff>=0.6,<0.7"]
+tui = ["textual>=1.0,<9"]
+dev = ["pytest>=8,<10", "pytest-cov>=5", "ruff>=0.6,<0.7", "textual>=1.0,<9"]
 
 [project.scripts]
 web-vuln-scanner = "scanner.cli.commands:main"
+web-vuln-scanner-tui = "scanner.tui:main"
 
 [project.urls]
 Repository = "https://github.com/igorkuchenbecker/web-vuln-scanner"
@@ -42,6 +44,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "scanner.reporting.templates" = ["*.html"]
+"scanner.tui" = ["*.tcss"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -1,0 +1,230 @@
+/* Layout and chrome for the scanner TUI.
+ *
+ * The palette variables ($bg, $accent, $sev-high...) are not declared here:
+ * they are generated from scanner.tui.theme and prepended to this sheet at
+ * load time, so the terminal, the rich console reporter and the HTML report
+ * cannot drift apart. Add colours to theme.py, not to this file.
+ */
+
+Screen {
+    background: $bg;
+    color: $ink;
+}
+
+#banner {
+    height: 1;
+    padding: 0 1;
+    background: $bg;
+}
+
+/* ---------------------------------------------------------------- controls */
+
+#controls {
+    height: auto;
+    border-bottom: solid $line;
+    padding: 0 1;
+}
+
+.control-row {
+    height: auto;
+    align-vertical: middle;
+}
+
+.field-label {
+    color: $muted;
+    padding: 1 1 0 1;
+    width: auto;
+}
+
+/* width: 1fr, not the stock 100%. An Input defaults to the full width of its
+ * container, which inside a row means it takes everything and lays its
+ * siblings out past the right edge -- the buttons and checkboxes are then in
+ * the DOM, findable by a test, and invisible to the operator. 1fr makes it
+ * take what is left after the auto-sized controls beside it. */
+Input {
+    width: 1fr;
+    background: $panel;
+    color: $ink;
+    border: tall $line;
+    height: 3;
+}
+
+Input:focus {
+    border: tall $accent;
+}
+
+Input.tiny {
+    width: 9;
+}
+
+.scanner-toggle {
+    background: $bg;
+    border: none;
+    height: 3;
+    padding: 1 1 0 1;
+    width: auto;
+}
+
+.scanner-toggle:focus {
+    color: $accent;
+    text-style: none;
+}
+
+Button {
+    height: 3;
+    min-width: 10;
+    border: tall $line;
+    background: $panel;
+    color: $ink;
+}
+
+Button:focus {
+    border: tall $accent;
+}
+
+Button.-success {
+    color: $accent;
+}
+
+Button.-error {
+    color: $sev-critical;
+}
+
+Button:disabled {
+    color: $muted;
+}
+
+/* ------------------------------------------------------------------- tabs */
+
+#tabs {
+    height: 1fr;
+}
+
+TabbedContent Tabs {
+    background: $bg;
+    color: $muted;
+}
+
+TabbedContent Tabs Tab {
+    color: $muted;
+}
+
+TabbedContent Tabs Tab.-active {
+    color: $accent;
+    text-style: bold;
+}
+
+TabPane {
+    padding: 0;
+    background: $bg;
+}
+
+/* ------------------------------------------------------------------ panes */
+
+.pane {
+    padding: 1 2;
+    height: 1fr;
+    background: $bg;
+}
+
+.section {
+    color: $muted;
+    text-style: bold;
+    padding: 1 0 0 0;
+}
+
+.split {
+    layout: horizontal;
+    height: 1fr;
+}
+
+.split-v {
+    layout: vertical;
+    height: 1fr;
+}
+
+.detail {
+    height: 1fr;
+    padding: 1 2;
+    background: $panel;
+    border-top: solid $line;
+    overflow-x: auto;
+}
+
+.split > .detail {
+    border-top: none;
+    border-left: solid $line;
+    width: 1fr;
+}
+
+#site-tree {
+    width: 40%;
+    background: $bg;
+    padding: 1 1;
+}
+
+#site-tree:focus {
+    background: $bg;
+}
+
+#filter-line {
+    height: 1;
+    padding: 0 2;
+    background: $bg;
+}
+
+DataTable {
+    height: 45%;
+    background: $bg;
+    color: $ink;
+}
+
+DataTable > .datatable--header {
+    background: $bg;
+    color: $muted;
+    text-style: bold;
+}
+
+DataTable > .datatable--cursor {
+    background: $line-hot;
+    color: $ink;
+}
+
+DataTable > .datatable--hover {
+    background: $line;
+}
+
+#log {
+    background: $bg;
+    padding: 1 2;
+    height: 1fr;
+}
+
+/* ----------------------------------------------------------------- status */
+
+/* Not docked. The Footer docks bottom and takes the last row out of the
+ * flow; a second widget docked to the same edge lands on the same row and
+ * whichever comes later in the DOM simply paints over the other. Leaving the
+ * status line in normal flow after a 1fr tab area puts it directly above the
+ * footer, which is where it has to be. */
+#status {
+    height: 1;
+    background: $panel;
+}
+
+Footer {
+    background: $panel;
+    color: $muted;
+}
+
+Footer > .footer--key {
+    background: $panel;
+    color: $accent;
+    text-style: bold;
+}
+
+Toast {
+    background: $panel;
+    border: tall $line;
+    color: $ink;
+}

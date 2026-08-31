@@ -133,7 +133,12 @@ class SecurityHeadersScanner(Scanner):
                 severity=Severity.MEDIUM,
                 description="No Content-Security-Policy header restricts resource "
                 "loading or inline script execution.",
-                remediation="Define a policy starting from 'default-src \\'self\\'' "
+                # Double quotes around the directive. CSP's own syntax requires
+                # the single quotes in 'self', and escaping those inside a
+                # single-quoted phrase printed the backslashes literally --
+                # remediation text is meant to be copied, so it has to be the
+                # header a reader can paste. Same for frame-ancestors below.
+                remediation="Define a policy starting from \"default-src 'self'\" "
                 "and tighten it per resource type.",
                 impact="Removes a strong defence-in-depth control against XSS and "
                 "data injection; it does not itself grant an attacker access.",
@@ -156,7 +161,7 @@ class SecurityHeadersScanner(Scanner):
                 description="Neither X-Frame-Options nor a CSP frame-ancestors "
                 "directive is set.",
                 remediation="Send 'X-Frame-Options: DENY' or a CSP "
-                "'frame-ancestors \\'none\\'' directive.",
+                "\"frame-ancestors 'none'\" directive.",
                 impact="The page can be embedded in a hostile frame and used for " "clickjacking.",
                 rationale="LOW: exploitation needs user interaction and only affects "
                 "framing-sensitive pages.",
